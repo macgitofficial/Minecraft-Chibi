@@ -1,6 +1,9 @@
 package net.mac.projectmod;
 
 import com.mojang.logging.LogUtils;
+import net.mac.projectmod.entity.ModEntities;
+import net.mac.projectmod.entity.client.NpcRenderer;
+import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
@@ -32,7 +35,7 @@ public class ProjectMod
         // Register ourselves for server and other game events we are interested in
         MinecraftForge.EVENT_BUS.register(this);
 
-
+        ModEntities.ENTITY_TYPES.register(modEventBus);
 
         // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);
@@ -65,7 +68,7 @@ public class ProjectMod
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event)
         {
-
+            EntityRenderers.register(ModEntities.CHIBI.get(), NpcRenderer::new);
         }
     }
 }
