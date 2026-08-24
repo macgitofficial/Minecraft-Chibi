@@ -1,12 +1,19 @@
 package net.mac.projectmod;
 
 import com.mojang.logging.LogUtils;
+import net.mac.projectmod.command.SummonChibi;
+import net.mac.projectmod.data.PlacedLogListener;
+import net.mac.projectmod.entity.ChibiRenderer;
 import net.mac.projectmod.entity.ModEntities;
-import net.mac.projectmod.entity.client.NpcRenderer;
+import net.mac.projectmod.event.PlayerAttackEvent;
+import net.mac.projectmod.gui.ModMenus;
+import net.mac.projectmod.gui.NpcInventoryScreen;
+import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -17,6 +24,7 @@ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
+
 
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(ProjectMod.MOD_ID)
@@ -36,11 +44,22 @@ public class ProjectMod
         MinecraftForge.EVENT_BUS.register(this);
 
         ModEntities.ENTITY_TYPES.register(modEventBus);
+        ModMenus.MENUS.register(modEventBus);
+
+        MinecraftForge.EVENT_BUS.register(new PlacedLogListener());
+        MinecraftForge.EVENT_BUS.register(PlayerAttackEvent.class);
+        MinecraftForge.EVENT_BUS.addListener(
+                this::onRegisterCommands
+        );
 
         // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);
         // Register our mod's ForgeConfigSpec so that Forge can create and load the config file for us
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+    }
+
+    public void onRegisterCommands(RegisterCommandsEvent event) {
+        SummonChibi.register(event.getDispatcher());
     }
 
     private void commonSetup(final FMLCommonSetupEvent event)
@@ -61,6 +80,10 @@ public class ProjectMod
 
     }
 
+    private void clientSetup(final FMLClientSetupEvent event) {
+
+    }
+
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
     @Mod.EventBusSubscriber(modid = MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ClientModEvents
@@ -68,7 +91,16 @@ public class ProjectMod
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event)
         {
-            EntityRenderers.register(ModEntities.CHIBI.get(), NpcRenderer::new);
+            EntityRenderers.register(
+                    ModEntities.CHIBI.get(),
+                    ChibiRenderer::new);
+
+            event.enqueueWork(() -> {
+                MenuScreens.register(
+                        ModMenus.NPC_INVENTORY.get(),
+                        NpcInventoryScreen::new
+                );
+            });
         }
     }
 }
