@@ -1,0 +1,28 @@
+{
+  "chibi_ambient": {
+    "sounds": [
+      "projectmod:idle1",
+      "projectmod:idle2",
+      "projectmod:idle3",
+      "projectmod:idle4",
+      "projectmod:idle5",
+      "projectmod:idle6",
+      "projectmod:idle7"
+    ]
+  },
+  "chibi_hurt": {
+    "sounds": [
+      "projectmod:hurt1",
+      "projectmod:hurt2",
+      "projectmod:hurt3",
+      "projectmod:hurt4"
+    ]
+  },
+  "chibi_death": {
+    "sounds": [
+      "projectmod:death1",
+      "projectmod:death2"
+
+    ]
+  }
+}

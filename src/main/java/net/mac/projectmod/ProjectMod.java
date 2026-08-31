@@ -1,13 +1,13 @@
 package net.mac.projectmod;
 
 import com.mojang.logging.LogUtils;
-import net.mac.projectmod.command.SummonChibi;
-import net.mac.projectmod.data.PlacedLogListener;
-import net.mac.projectmod.entity.ChibiRenderer;
+
 import net.mac.projectmod.entity.ModEntities;
-import net.mac.projectmod.event.PlayerAttackEvent;
+import net.mac.projectmod.client.tlm.TlmModelLoader;
+import net.mac.projectmod.fishing.ProjectFishingHookRenderer;
+import net.mac.projectmod.gui.ChibiInventoryScreen;
 import net.mac.projectmod.gui.ModMenus;
-import net.mac.projectmod.gui.NpcInventoryScreen;
+import net.mac.projectmod.sound.ModSounds;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.client.renderer.entity.EntityRenderers;
 import net.minecraftforge.api.distmarker.Dist;
@@ -44,13 +44,8 @@ public class ProjectMod
         MinecraftForge.EVENT_BUS.register(this);
 
         ModEntities.ENTITY_TYPES.register(modEventBus);
+        ModSounds.SOUNDS.register(modEventBus);
         ModMenus.MENUS.register(modEventBus);
-
-        MinecraftForge.EVENT_BUS.register(new PlacedLogListener());
-        MinecraftForge.EVENT_BUS.register(PlayerAttackEvent.class);
-        MinecraftForge.EVENT_BUS.addListener(
-                this::onRegisterCommands
-        );
 
         // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);
@@ -59,7 +54,7 @@ public class ProjectMod
     }
 
     public void onRegisterCommands(RegisterCommandsEvent event) {
-        SummonChibi.register(event.getDispatcher());
+
     }
 
     private void commonSetup(final FMLCommonSetupEvent event)
@@ -91,16 +86,14 @@ public class ProjectMod
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event)
         {
+            event.enqueueWork(TlmModelLoader::ensureLoaded);
             EntityRenderers.register(
-                    ModEntities.CHIBI.get(),
-                    ChibiRenderer::new);
-
-            event.enqueueWork(() -> {
-                MenuScreens.register(
-                        ModMenus.NPC_INVENTORY.get(),
-                        NpcInventoryScreen::new
-                );
-            });
+                    ModEntities.FISHING_HOOK.get(),
+                    ProjectFishingHookRenderer::new);
+            MenuScreens.register(
+                    ModMenus.CHIBI_INVENTORY.get(),
+                    ChibiInventoryScreen::new
+            );
         }
     }
 }

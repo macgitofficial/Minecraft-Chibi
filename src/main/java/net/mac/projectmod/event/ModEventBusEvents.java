@@ -2,7 +2,7 @@ package net.mac.projectmod.event;
 
 import net.mac.projectmod.ProjectMod;
 import net.mac.projectmod.entity.ChibiEntity;
-import net.mac.projectmod.entity.ChibiRenderer;
+import net.mac.projectmod.client.tlm.TlmChibiRenderer;
 import net.mac.projectmod.entity.ModEntities;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
@@ -16,7 +16,7 @@ public class ModEventBusEvents {
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(
                 ModEntities.CHIBI.get(),
-                ChibiRenderer::new
+                TlmChibiRenderer::new
         );
     }
 

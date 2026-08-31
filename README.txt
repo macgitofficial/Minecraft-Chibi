@@ -1,17 +1,35 @@
 Next:
-- ต่อบล็อคไปตัดต้นไม้แทนการปีนดีกว่า
-    - ตัดในระยะก่อนต่อบลอคขึ้นไปหาไม้ที่สูงแล้วตัด
-    - ถ้าไม่มีบลอคและตัดไม่ถึงก็เลิกแล้วเปลี่ยนไปตัดต้นอื่น
-    - ถ้าใบไม้บังก็ทุบออกให้หมดพอที่จะทุบไม้ได้
-- ทำ UI ให้ครบ (ออกแบบก่อน)
-    -
-- ปรับ GetItemGoal ให้เด้งเข้าตัว chibi แทนแล้วแค่ให้ Chibi เดินไปหา Item
-- เติม Animation + Sound Gugu gaga (ยืม Model มา + ใช้ Geckolib)
-- ปรับระเบียบโค้ดให้เล็กลง? เปลี่ยนเป็น /summon projectmod:chibi พร้อมติด owner
+- Rest
+- ทำฟาร์ม
+
 Issue:
-    -
+- TreeChop (ไว้ก่อน)
+    - ไม่เดินไปหาต้นไม้ก่อน + ไม่ยอมต่อ block
+    - ตัดไม้ทันที ไม่สมจริง
+- ตกปลาได้แล้ว เหลือ Animation
+
 Left (ค่อยว่ากัน):
-- ตกปลา ทำฟาร์ม
+- Animation Model คาดว่าใช่
+    client../
+    - LayerMaidHeldItem
+    - GeckoLayerMaidHeld
+    - EntityMaidRenderer
+    - GeckoMaidEntity
+    - models/MaidModels
+    - tlm/geckolib3
+    - GeckoEntityMaidRenderer
+    - ../renderer/entity/sound
+    - animation/gecko
+    - special/SwimAnimation
+    - model/bedrock
+    - BedrockModel
+    - bedrock/SimpleBedrockModel
+
+    *Fishing*
+    - MaidFishingHookRenderer
+    ...
+
+- UI: Health Hunger Mode Model
 - เงื่อนไขของ Working
     - ใช้ priority
     - ดูบริบทรอบข้าง (ของใน inventory)

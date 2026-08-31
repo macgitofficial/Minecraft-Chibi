@@ -1,0 +1,7 @@
+This project includes a ported/adapted subset of Touhou Little Maid's custom rendering/animation engine
+(geckolib3 and molang packages) from the TLM 1.21.1 source tree.
+
+Touhou Little Maid code license: MIT
+Copyright (c) 2019-2024 tartaric_acid (code part)
+
+The original TLM LICENSE text is preserved in this repository copy.
