@@ -40,7 +40,7 @@ import java.util.EnumSet;
 public class FishingGoal extends Goal {
     private static final int SEARCH_RANGE = 6;
     private static final int VERTICAL_SEARCH_RANGE = 3;
-    private static final int CHECK_DELAY = 100;
+    private static final int CHECK_DELAY = 20;
     private static final double MOVE_SPEED = 0.6D;
     private static final double CAST_DISTANCE = 3.5D;
     private static final double HOOK_TIMEOUT_SQR = 256.0D;
@@ -51,6 +51,7 @@ public class FishingGoal extends Goal {
     private BlockPos standPos;
     private ProjectFishingHook fishingHook;
     private int nextCheckTick;
+    private int failedMoveTicks;
 
     public FishingGoal(ChibiEntity chibi) {
         this.chibi = chibi;
@@ -83,8 +84,16 @@ public class FishingGoal extends Goal {
         if (!isWaterPosValid()) {
             searchForDestination();
         }
+        if (waterPos == null) {
+            return false;
+        }
 
-        return waterPos != null;
+        if (standPos == null || !canUseStandPos(standPos)) {
+            standPos = findNearestStandSpot(waterPos);
+            failedMoveTicks = 0;
+        }
+
+        return standPos != null;
     }
 
     @Override
@@ -102,10 +111,11 @@ public class FishingGoal extends Goal {
             return false;
         }
 
-        // Keep the goal alive while the bobber exists so the animation and
-        // look target remain stable. Once the hook disappears, GoalSelector
-        // can start a fresh fishing cycle after CHECK_DELAY.
-        return fishingHook != null && fishingHook.isAlive();
+        // Important: keep the goal running while it is still searching for
+        // water, walking to the shore, or preparing the cast. The previous
+        // implementation returned false until a hook existed, so GoalSelector
+        // stopped it before tick() could ever reach castFishingHook().
+        return fishingHook == null || fishingHook.isAlive();
     }
 
     @Override
@@ -120,6 +130,7 @@ public class FishingGoal extends Goal {
         }
 
         standPos = findNearestStandSpot(waterPos);
+        failedMoveTicks = 0;
     }
 
     @Override
@@ -158,23 +169,37 @@ public class FishingGoal extends Goal {
             standPos = findNearestStandSpot(waterPos);
         }
 
-        if (standPos != null) {
-            double distance = chibi.distanceToSqr(
+        if (standPos == null || !canUseStandPos(standPos)) {
+            standPos = findNearestStandSpot(waterPos);
+            failedMoveTicks = 0;
+        }
+
+        if (standPos == null) {
+            return;
+        }
+
+        double distance = chibi.distanceToSqr(
+                standPos.getX() + 0.5D,
+                standPos.getY(),
+                standPos.getZ() + 0.5D
+        );
+
+        if (distance > CAST_DISTANCE * CAST_DISTANCE) {
+            boolean moved = chibi.getNavigation().moveTo(
                     standPos.getX() + 0.5D,
                     standPos.getY(),
-                    standPos.getZ() + 0.5D
+                    standPos.getZ() + 0.5D,
+                    MOVE_SPEED
             );
+            failedMoveTicks = moved ? 0 : failedMoveTicks + 1;
 
-            if (distance > CAST_DISTANCE * CAST_DISTANCE) {
-                chibi.getNavigation().moveTo(
-                        standPos.getX() + 0.5D,
-                        standPos.getY(),
-                        standPos.getZ() + 0.5D,
-                        MOVE_SPEED
-                );
-                lookAtWater();
-                return;
+            if (!moved || (chibi.getNavigation().isDone() && failedMoveTicks > 10)) {
+                standPos = findNearestStandSpot(waterPos);
+                failedMoveTicks = 0;
             }
+
+            lookAtWater();
+            return;
         }
 
         chibi.getNavigation().stop();
@@ -195,6 +220,7 @@ public class FishingGoal extends Goal {
         standPos = null;
         waterPos = null;
         nextCheckTick = CHECK_DELAY;
+        failedMoveTicks = 0;
     }
 
     /**
@@ -204,9 +230,9 @@ public class FishingGoal extends Goal {
         BlockPos center = chibi.blockPosition();
         BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
 
-        // Matches TLM's unusual but useful ring traversal:
-        // y = 0, -1, 1, -2, 2, ...
-        for (int y = -VERTICAL_SEARCH_RANGE; y <= VERTICAL_SEARCH_RANGE;
+        // Match TLM's traversal order exactly: 0, +1, -1, +2, -2, ...
+        int verticalSearchStart = 0;
+        for (int y = verticalSearchStart; y <= VERTICAL_SEARCH_RANGE;
              y = y > 0 ? -y : 1 - y) {
             for (int i = 0; i < SEARCH_RANGE; ++i) {
                 for (int x = 0; x <= i; x = x > 0 ? -x : 1 - x) {
@@ -269,17 +295,27 @@ public class FishingGoal extends Goal {
         BlockPos best = null;
         double bestDistance = Double.MAX_VALUE;
 
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dz = -3; dz <= 3; dz++) {
                 if (dx == 0 && dz == 0) {
                     continue;
                 }
 
-                BlockPos candidate = water.offset(dx, 0, dz);
+                // Water block is at the block level where the shore begins.
+                // The Chibi stands in the air block ABOVE a solid shoreline block.
+                BlockPos candidate = water.offset(dx, 0, dz).above();
                 if (!canStandAt(candidate)) {
                     continue;
                 }
+                if (!isAdjacentToWater(candidate)) {
+                    continue;
+                }
                 if (chibi.hasRestriction() && !chibi.isWithinRestriction(candidate)) {
+                    continue;
+                }
+
+                var path = chibi.getNavigation().createPath(candidate, 0);
+                if (path == null) {
                     continue;
                 }
 
@@ -292,6 +328,23 @@ public class FishingGoal extends Goal {
         }
 
         return best;
+    }
+
+    private boolean canUseStandPos(BlockPos pos) {
+        return pos != null && canStandAt(pos) && isAdjacentToWater(pos);
+    }
+
+    private boolean isAdjacentToWater(BlockPos stand) {
+        for (net.minecraft.core.Direction direction : new net.minecraft.core.Direction[]{
+                net.minecraft.core.Direction.NORTH,
+                net.minecraft.core.Direction.SOUTH,
+                net.minecraft.core.Direction.EAST,
+                net.minecraft.core.Direction.WEST}) {
+            if (isSuitableFishingWater(stand.relative(direction).below())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean canStandAt(BlockPos pos) {
@@ -325,7 +378,10 @@ public class FishingGoal extends Goal {
      * vector so the line/bobber reaches the water from Chibi's shore position.
      */
     private void castFishingHook() {
-        if (!hasFishingRodInMainHand() || waterPos == null) {
+        if (!hasFishingRodInMainHand() || waterPos == null || standPos == null) {
+            return;
+        }
+        if (chibi.distanceToSqr(standPos.getX() + 0.5D, standPos.getY(), standPos.getZ() + 0.5D) > CAST_DISTANCE * CAST_DISTANCE) {
             return;
         }
 

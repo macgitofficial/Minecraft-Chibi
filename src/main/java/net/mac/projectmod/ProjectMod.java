@@ -3,7 +3,7 @@ package net.mac.projectmod;
 import com.mojang.logging.LogUtils;
 
 import net.mac.projectmod.entity.ModEntities;
-import net.mac.projectmod.client.tlm.TlmModelLoader;
+import net.mac.projectmod.client.render.ProjectModelLoader;
 import net.mac.projectmod.fishing.ProjectFishingHookRenderer;
 import net.mac.projectmod.gui.ChibiInventoryScreen;
 import net.mac.projectmod.gui.ModMenus;
@@ -86,7 +86,7 @@ public class ProjectMod
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event)
         {
-            event.enqueueWork(TlmModelLoader::ensureLoaded);
+            event.enqueueWork(ProjectModelLoader::ensureLoaded);
             EntityRenderers.register(
                     ModEntities.FISHING_HOOK.get(),
                     ProjectFishingHookRenderer::new);

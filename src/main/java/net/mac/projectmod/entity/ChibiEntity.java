@@ -1,6 +1,7 @@
 package net.mac.projectmod.entity;
 
 import net.mac.projectmod.goal.FishingGoal;
+import net.mac.projectmod.goal.ChibiSleepGoal;
 import net.mac.projectmod.goal.PickUpItemGoal;
 import net.mac.projectmod.goal.TreeChopGoal;
 import net.mac.projectmod.gui.ChibiInventory;
@@ -47,6 +48,7 @@ public class ChibiEntity extends TamableAnimal implements GeoEntity {
     }
 
 
+
     /*
      * Sync ว่า AI (goal) กำลังสั่งให้เดินอยู่หรือไม่ จาก server ไป client
      * เพราะ getNavigation().isDone() อ่านได้แค่ฝั่ง server เท่านั้น
@@ -57,10 +59,11 @@ public class ChibiEntity extends TamableAnimal implements GeoEntity {
             SynchedEntityData.defineId(ChibiEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_SITTING =
             SynchedEntityData.defineId(ChibiEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_FISHING =
+            SynchedEntityData.defineId(ChibiEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> DATA_HUNGER =
             SynchedEntityData.defineId(ChibiEntity.class,EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Boolean> DATA_FISHING =
-            SynchedEntityData.defineId(ChibiEntity.class,EntityDataSerializers.BOOLEAN);
+
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder builder) {
         super.defineSynchedData(builder);
@@ -128,12 +131,13 @@ public class ChibiEntity extends TamableAnimal implements GeoEntity {
     @Override
     protected void registerGoals() {
         this.goalSelector.addGoal(0, new SitWhenOrderedToGoal(this));
+        this.goalSelector.addGoal(1, new ChibiSleepGoal(this));
 //        this.goalSelector.addGoal(1, new TreeChopGoal(this));
-        this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.2D, true));
         this.goalSelector.addGoal(3, new FishingGoal(this));
+        this.goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.0D, 10.0F, 2.0F));
         this.goalSelector.addGoal(5, new FloatGoal(this));
-        this.goalSelector.addGoal(6, new PanicGoal(this, 1.2D));
-        this.goalSelector.addGoal(7, new FollowOwnerGoal(this, 1.0D, 10.0F, 2.0F));
+        this.goalSelector.addGoal(6, new MeleeAttackGoal(this, 1.2D, true));
+        this.goalSelector.addGoal(7, new PanicGoal(this, 1.2D));
         this.goalSelector.addGoal(8, new PickUpItemGoal(this));
         this.goalSelector.addGoal(9, new RandomStrollGoal(this, 0.8D));
         this.goalSelector.addGoal(10, new LookAtPlayerGoal(this, Player.class, 6.0F));
@@ -149,7 +153,7 @@ public class ChibiEntity extends TamableAnimal implements GeoEntity {
                 .add(Attributes.MOVEMENT_SPEED, 0.3D)
                 .add(Attributes.ATTACK_DAMAGE, 4.0D)
                 .add(Attributes.ATTACK_SPEED, 1.0D)
-                .add(Attributes.FOLLOW_RANGE, 32D);
+                .add(Attributes.FOLLOW_RANGE, 8D);
     }
 
 
@@ -193,6 +197,15 @@ public class ChibiEntity extends TamableAnimal implements GeoEntity {
             InteractionHand hand) {
 
         ItemStack itemInHand = player.getItemInHand(hand);
+
+        // Vanilla/Villager-style wake interaction: right-clicking a sleeping Chibi wakes it.
+        if (this.isSleeping()) {
+            if (!this.level().isClientSide()) {
+                this.stopSleeping();
+                this.getNavigation().stop();
+            }
+            return InteractionResult.sidedSuccess(this.level().isClientSide());
+        }
 
         if (!this.isTame() && this.isFood(itemInHand)) {
             if (!this.level().isClientSide()) {
@@ -242,6 +255,8 @@ public class ChibiEntity extends TamableAnimal implements GeoEntity {
 
         return InteractionResult.sidedSuccess(this.level().isClientSide());
     }
+
+
 
     /*
     เพิ่ม Inv ให้ ChibiEntity
@@ -359,7 +374,12 @@ public class ChibiEntity extends TamableAnimal implements GeoEntity {
     public void tick() {
         super.tick();
         if (!this.level().isClientSide()) {
-//            unequipWeaponIfIdle();
+            // TLM MaidClearSleepTask equivalent: wake when the normal player sleep window ends.
+            if (this.isSleeping() && !ChibiSleepGoal.isRestTime(this)) {
+                this.stopSleeping();
+            }
+
+            unequipWeaponIfIdle();
             this.entityData.set(DATA_WALKING, !this.getNavigation().isDone());
             this.entityData.set(DATA_SITTING, this.isOrderedToSit());
         }

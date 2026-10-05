@@ -34,3 +34,12 @@ behavior into `net.mac.projectmod.goal.FishingGoal`.
   Chibi inventory.
 - `ProjectFishingHook` is retained because it already owns vanilla fishing loot,
   bobbing, bite timing, inventory insertion, and the client fishing-line renderer.
+
+
+## Fixes after in-game test feedback
+
+- GoalSelector now keeps `FishingGoal` alive while searching/walking/casting; it no longer waits for an existing hook before `tick()` can run.
+- Water search now matches TLM's actual order starting at `y = 0`, then `+1, -1, +2, -2, ...`.
+- Shore candidates search a 5x5 ring and require a navigable path.
+- The active TLM renderer now has the `hold_mainhand` controller and the TLM-equivalent `hasFishingHook()` fishing pose predicate.
+- Cast/retrieve uses the dedicated `swing` controller via the entity's normal swing state.

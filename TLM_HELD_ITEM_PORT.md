@@ -25,3 +25,7 @@ The old GeckoLib 4 `BlockAndItemGeoLayer` is not attached to `TlmChibiRenderer`;
 - `ChibiAnimationManager` now mirrors TLM 1.21 `predicateMainhandHold` behavior with `hold_mainhand:fishing`.
 - The Guga animation file now contains TLM's default `hold_mainhand:fishing` pose.
 - Retrieval clears the fishing pose before triggering the normal `swing_hand` animation.
+
+
+## Fishing rod cast-model fix
+The vanilla 1.21.1 fishing_rod model has a `cast` override to `fishing_rod_cast`. Chibi bypasses that override for `Items.FISHING_ROD` and renders the base baked model directly, because the custom ProjectFishingHookRenderer owns the actual bobber/line rendering.

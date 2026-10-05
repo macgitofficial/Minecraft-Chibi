@@ -11,6 +11,8 @@ import net.mac.projectmod.entity.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerEntity;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -111,6 +113,35 @@ public class ProjectFishingHook extends Projectile {
             }
         }
         super.onSyncedDataUpdated(key);
+    }
+
+    @Override
+    public boolean shouldRenderAtSqrDistance(double distance) {
+        return distance < 64.0D * 64.0D;
+    }
+
+    @Override
+    public void lerpTo(double x, double y, double z, float yRot, float xRot, int steps) {
+        // Match TLM's MaidFishingHook: this entity simulates its own motion
+        // client-side, so vanilla network interpolation would fight that motion.
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getAddEntityPacket(ServerEntity serverEntity) {
+        Entity owner = getOwner();
+        return new ClientboundAddEntityPacket(
+                this,
+                serverEntity,
+                owner == null ? this.getId() : owner.getId()
+        );
+    }
+
+    @Override
+    public void recreateFromPacket(ClientboundAddEntityPacket packet) {
+        super.recreateFromPacket(packet);
+        if (getChibiOwner() == null) {
+            discard();
+        }
     }
 
     @Override
@@ -363,7 +394,6 @@ public class ProjectFishingHook extends Projectile {
 
             chibi.setFishingActive(false);
             chibi.swing(InteractionHand.MAIN_HAND);
-            chibi.triggerAnim("main", "swing_hand");
             level.playSound(
                     null,
                     chibi.getX(), chibi.getY(), chibi.getZ(),
@@ -472,6 +502,15 @@ public class ProjectFishingHook extends Projectile {
         );
     }
 
+    @Override
+    public void remove(Entity.RemovalReason reason) {
+        ChibiEntity chibi = getChibiOwner();
+        if (chibi != null) {
+            chibi.setFishingActive(false);
+        }
+        super.remove(reason);
+    }
+
     @Nullable
     public ChibiEntity getChibiOwner() {
         Entity owner = getOwner();
@@ -541,16 +580,6 @@ public class ProjectFishingHook extends Projectile {
     @Override
     protected Entity.MovementEmission getMovementEmission() {
         return Entity.MovementEmission.NONE;
-    }
-
-    @Override
-    public void remove(RemovalReason reason) {
-        super.remove(reason);
-    }
-
-    @Override
-    public net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener> getAddEntityPacket(ServerEntity serverEntity) {
-        return new ClientboundAddEntityPacket(this, serverEntity);
     }
 
     private enum HookState {

@@ -7,7 +7,6 @@ package net.mac.projectmod.fishing;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.math.Axis;
 import net.mac.projectmod.entity.ChibiEntity;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -62,7 +61,6 @@ public class ProjectFishingHookRenderer extends EntityRenderer<ProjectFishingHoo
         poseStack.pushPose();
         poseStack.scale(0.5F, 0.5F, 0.5F);
         poseStack.mulPose(entityRenderDispatcher.cameraOrientation());
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
 
         PoseStack.Pose pose = poseStack.last();
 

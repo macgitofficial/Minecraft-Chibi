@@ -25,6 +25,8 @@ public final class ChibiAnimationManager {
             RawAnimation.begin().thenLoop("walk");
     public static final RawAnimation SIT =
             RawAnimation.begin().thenLoop("sit");
+    public static final RawAnimation SLEEP =
+            RawAnimation.begin().thenLoop("sleep");
     public static final RawAnimation SWIM_STAND =
             RawAnimation.begin().thenLoop("swim_stand");
     public static final RawAnimation BOAT =
@@ -80,6 +82,8 @@ public final class ChibiAnimationManager {
             state.getController().setAnimation(DEATH);
         } else if (chibi.isPassenger()) {
             state.getController().setAnimation(BOAT);
+        } else if (chibi.isSleeping()) {
+            state.getController().setAnimation(SLEEP);
         } else if (chibi.isSittingByServer()) {
             state.getController().setAnimation(SIT);
         } else if (chibi.isSwimming() || chibi.isInWater()) {
